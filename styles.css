@@ -181,7 +181,7 @@ button {
 
 @media (max-width: 800px) {
     #waveCanvas {
-        margin-top: -3.5rem !important;
+        margin-top: -2.5rem !important;
     }
 
     .card {
