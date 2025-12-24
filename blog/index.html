@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Blog - Rouse SciOly</title>
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <div class="card">
+        <div class="content">
+            <h1>Blog <img class="tab-icon" src="../assets/blog.svg"></h1>
+            <p>Insights from the RSO Team.</p>
+        </div>
+        <canvas id="waveCanvas"></canvas>
+        <div class="about-section" id="about-section">
+            <div class="events-container">
+                <div class="events-grid" id="events-grid">
+                    <div class="events-loading">Loading blog posts...</div>
+                </div>
+            </div>
+            <footer class="site-footer special">
+                <div class="footer-left">
+                    Made with <img src="../assets/heart.svg" alt="heart" class="heart-beat"> by <a href="https://sandeepshenoy.dev" target="_blank" rel="noopener">sandeepshenoy.dev</a><span class="footer-separator"> • </span><span class="footer-maintained">Maintained by Rouse SciOly Officers</span>
+                </div>
+                <div class="footer-right">
+                    <a href="https://github.com/rousescioly/rousescioly.github.io" target="_blank" rel="noopener" aria-label="GitHub">
+                        <img src="../assets/github.svg" alt="GitHub">
+                    </a>
+                    <a href="https://www.instagram.com/rousescioly/" target="_blank" rel="noopener" aria-label="Instagram">
+                        <img src="../assets/insta.svg" alt="Instagram">
+                    </a>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <div class="event-modal-overlay" id="blog-modal-overlay">
+        <div class="event-modal">
+            <button class="event-modal-close" id="blog-modal-close">&times;</button>
+            <div class="event-modal-header" id="blog-modal-header"></div>
+            <div class="event-modal-content">
+                <h2 id="blog-modal-title"></h2>
+                <div class="event-modal-details">
+                    <div class="event-modal-detail">
+                        <span class="event-modal-icon">📅</span>
+                        <span id="blog-modal-date"></span>
+                    </div>
+                    <div class="event-modal-detail">
+                        <span class="event-modal-icon">✍️</span>
+                        <span id="blog-modal-author"></span>
+                    </div>
+                </div>
+                <div id="blog-modal-description" class="blog-content-scroll"></div>
+            </div>
+        </div>
+    </div>
+
+<script src="../script.js"></script>
+<script>
+(function() {
+    const API_URL = 'https://sandeepshenoy.dev/rso/scioly.json';
+    
+    function formatDate(timestamp) {
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+    
+    function formatShortDate(timestamp) {
+        const date = new Date(timestamp * 1000);
+        const month = date.toLocaleDateString('en-US', { month: 'short' });
+        const day = date.getDate();
+        return { month, day };
+    }
+    
+    function parseMarkdown(text) {
+        return text
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/\\!/g, '!')
+            .replace(/\n/g, '<br>');
+    }
+    
+    function createBlogCard(post) {
+        const { month, day } = formatShortDate(post.datetime);
+        const card = document.createElement('div');
+        card.className = 'event-card';
+        card.innerHTML = `
+            <div class="event-card-image" style="background-image: url('../assets/headers/blog.png')">
+                <div class="event-card-date">
+                    <span class="event-card-month">${month}</span>
+                    <span class="event-card-day">${day}</span>
+                </div>
+            </div>
+            <div class="event-card-content">
+                <h3 class="event-card-title">${post.title}</h3>
+                <p class="blog-card-author">By ${post.author}</p>
+            </div>
+        `;
+        card.addEventListener('click', () => openModal(post));
+        return card;
+    }
+    
+    function openModal(post) {
+        const overlay = document.getElementById('blog-modal-overlay');
+        document.getElementById('blog-modal-header').style.backgroundImage = `url('../assets/headers/blog.png')`;
+        document.getElementById('blog-modal-title').textContent = post.title;
+        document.getElementById('blog-modal-date').textContent = formatDate(post.datetime);
+        document.getElementById('blog-modal-author').textContent = 'By ' + post.author;
+        document.getElementById('blog-modal-description').innerHTML = parseMarkdown(post.content);
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeModal() {
+        const overlay = document.getElementById('blog-modal-overlay');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    
+    async function loadBlogPosts() {
+        const grid = document.getElementById('events-grid');
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            
+            if (data.blog && data.blog.length > 0) {
+                grid.innerHTML = '';
+                data.blog.forEach(post => {
+                    grid.appendChild(createBlogCard(post));
+                });
+            } else {
+                grid.innerHTML = '<div class="events-empty">No blog posts at the moment.</div>';
+            }
+        } catch (error) {
+            console.error('Failed to load blog posts:', error);
+            grid.innerHTML = '<div class="events-error">Failed to load blog posts. Please try again later.</div>';
+        }
+    }
+    
+    document.getElementById('blog-modal-close').addEventListener('click', closeModal);
+    document.getElementById('blog-modal-overlay').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+    
+    loadBlogPosts();
+})();
+</script>
+</body>
+</html>

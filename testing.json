@@ -1,0 +1,55 @@
+{
+    "events": [
+        {
+            "datetime": 3074674026,
+            "img": "fallback.jpg",
+            "title": "Test-1",
+            "description": "Testing Event 1",
+            "location": "Raider Way"
+        },
+
+        {
+            "datetime": 3074675026,
+            "img": "fallback.jpg",
+            "title": "Test-2",
+            "description": "Testing Event 2",
+            "location": "Raider Way"
+        }
+    ],
+
+    "blog": [
+        {
+            "datetime": 3074676026,
+            "title": "Blog Post 1",
+            "author": "Raider",
+            "content": "**This** is the **content** for *blog post* 1.\nNext line."
+        }
+    ],
+
+    "results": [
+        {
+            "datetime": 3074676026,
+            "event": "States",
+            "location": "Raider Way",
+            "rawdata": "Remote_Sensing,A,1\nMeteorology,B,10"
+        }
+    ],
+
+    "resources": [
+        {
+            "title": "Resource 1",
+            "link": "https://example.com/resource1",
+            "icon": "https://example.com/icon1.png",
+            "header": "https://example.com/header1.png",
+            "description": "Description for Resource 1"
+        },
+        
+        {
+            "title": "Resource 2",
+            "link": "https://example.com/resource2",
+            "icon": "https://example.com/icon2.png",
+            "header": "https://example.com/header2.png",
+            "description": "Description for Resource 2"
+        }
+    ]
+}
