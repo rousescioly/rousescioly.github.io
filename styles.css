@@ -34,11 +34,11 @@ body {
 }
 
 .duosmium-logo {
-    height: 15px !important;
-    width: 15px !important;
+    height: 22.5px !important;
+    width: 22.5px !important;
     vertical-align: middle;
     margin: 0.1em;
-    margin-right: 0.15em;
+    margin-right: -0.4em;
     transform: translateY(-0.2rem);
     display: inline-block;
 }

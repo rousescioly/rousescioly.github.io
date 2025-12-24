@@ -2,8 +2,172 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Results - Rouse SciOly</title>
     <link rel="stylesheet" href="../styles.css">
+    <style>
+        :root {
+            --color-primary: #8e220f;
+            --color-foreground: #fde8ce;
+            --color-accent: #f4ba54;
+            --color-accent-foreground: #8b2d17;
+            --shadow-rgba: rgba(0,0,0,0.12);
+            --muted-rgba: rgba(255,255,255,0.04);
+            --muted-strong-rgba: rgba(255,255,255,0.12);
+            
+            --edge-margin: 30px;
+            --edge-margin-mobile: 40px;
+        }
+        .results-container {
+            width: 100%;
+            margin-top: 2rem;
+        }
+        .tournament {
+            margin-bottom: 3rem;
+        }
+        .tournament-title {
+            color: var(--color-primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px dashed var(--color-primary);
+        }
+        .team-section {
+            margin-bottom: 2rem;
+        }
+        .team-name {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            color: var(--color-primary);
+        }
+        .results-table {
+            width: 100%;
+            color: var(--color-primary);
+            border-collapse: collapse;
+            background: var(--muted-rgba);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .results-table th,
+        .results-table td {
+            padding: 12px 16px;
+            text-align: left;
+        }
+        .results-table th {
+            background: var(--muted-strong-rgba);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .results-table tr:last-child td {
+            border-bottom: none;
+        }
+        .results-table tbody tr:hover {
+            background: var(--muted-strong-rgba);
+        }
+        .rank-cell {
+            font-weight: 700;
+            width: 80px;
+            text-align: center;
+        }
+        .rank-1 {
+            background: linear-gradient(180deg, #f8d267 0%, #bf7e1d 100%);
+            color: #925317;
+            text-shadow: 0 1px 0 #f8d16765;
+            border: solid 2px #a66035;
+            box-shadow: -1px 5px 0px #90462d, 1px 5px 0px #90462d, inset 1.5px 2px 0px rgba(255, 249, 194, 0.475);
+
+        }
+        .rank-2 {
+            background: linear-gradient(180deg, #e6e7ea 0%, #80838b 100%);
+            color: #3a3a3a;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+            border: solid 2px #5c606f;
+            box-shadow: -1px 5px 0px #46515d, 1px 5px 0px #46515d, inset 1.5px 2px 0px rgb(246, 251, 255);
+        }
+        .rank-3 {
+            background: linear-gradient(180deg, #c79666 0%, #703e32 100%);
+            color: #5d3018;
+            text-shadow: 0 1px 0 rgba(207, 169, 124, 0.6);
+            border: solid 2px #56281d;
+            box-shadow: -1px 5px 0px #3d1c13, 1px 5px 0px #3d1c13, inset 1.5px 2px 0px rgba(242, 187, 121, 0.626);
+        }
+        .event-cell {
+            font-weight: 500;
+        }
+        .medals-summary {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .medal-count {
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            background: var(--muted-rgba);
+        }
+        .medal-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+        .medal-gold {
+            background: linear-gradient(180deg, #f8d267 0%, #bf7e1d 100%);
+            color: #925317;
+            text-shadow: 0 1px 0 #f8d16765;
+            border: solid 2px #a66035;
+            box-shadow: 0px 3.5px 0px #90462d, inset 1.5px 2px 0px rgba(255, 249, 194, 0.475);
+        }
+        .medal-silver {
+            background: linear-gradient(180deg, #e6e7ea 0%, #80838b 100%);
+            color: #3a3a3a;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+            border: solid 2px #5c606f;
+            box-shadow: 0px 3.5px 0px #46515d, inset 1.5px 2px 0px rgb(246, 251, 255);
+        }
+        .medal-bronze {
+            background: linear-gradient(180deg, #c79666 0%, #703e32 100%);
+            color: #5d3018;
+            text-shadow: 0 1px 0 rgba(207, 169, 124, 0.6);
+            border: solid 2px #56281d;
+            box-shadow: 0px 3.5px 0px #3d1c13, inset 1.5px 2px 0px rgba(242, 187, 121, 0.626);
+        }
+        @media (max-width: 600px) {
+            .tournament-title {
+                font-size: 1.2rem;
+            }
+            .team-name {
+                font-size: 1rem;
+            }
+            .results-table th,
+            .results-table td {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+            .rank-cell {
+                width: 60px;
+            }
+            .medals-summary {
+                gap: 0.75rem;
+            }
+            .medal-count {
+                padding: 0.4rem 0.75rem;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="card">
@@ -11,11 +175,12 @@
             <h1>Results <img class="tab-icon" src="../assets/results.svg"></h1>
             <p class="special">Our results, year by year.</p>
             <div class="duosmium">
-                    All data has been taken from <img class="duosmium-logo" src="../assets/duosmium.svg"></h1><a href="https://duosmium.org" target="_blank" rel="noopener">Duosmium</a>.
+                Powered by <img class="duosmium-logo" src="../assets/duosmium.svg"><a href="https://duosmium.org" target="_blank" rel="noopener">    uosmium</a>
             </div>
         </div>
         <canvas id="waveCanvas"></canvas>
         <div class="about-section" id="about-section">
+            <div class="results-container" id="results-container"></div>
             <footer class="site-footer special">
                 <div class="footer-left">
                     Made with <img src="../assets/heart.svg" alt="heart" class="heart-beat"> by <a href="https://sandeepshenoy.dev" target="_blank" rel="noopener">sandeepshenoy.dev</a><span class="footer-separator"> • </span><span class="footer-maintained">Maintained by Rouse SciOly Officers</span>
@@ -32,5 +197,128 @@
         </div>
     </div>
 <script src="../script.js"></script>
+<script>
+(function() {
+    function parseResults(text) {
+        const lines = text.split('\n');
+        const tournaments = [];
+        let currentTournament = null;
+        let currentTeam = null;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            if (lines[i + 1] && lines[i + 1].trim().match(/^=+$/)) {
+                if (currentTournament) {
+                    if (currentTeam) {
+                        currentTournament.teams.push(currentTeam);
+                    }
+                    tournaments.push(currentTournament);
+                }
+                currentTournament = { name: line, teams: [] };
+                currentTeam = null;
+                i++;
+                continue;
+            }
+
+            if (line.startsWith('Rouse High School')) {
+                if (currentTeam && currentTournament) {
+                    currentTournament.teams.push(currentTeam);
+                }
+                currentTeam = { name: line, events: [] };
+                continue;
+            }
+
+            const eventMatch = line.match(/^(.+?)\s*-\s*(\d+)$/);
+            if (eventMatch && currentTeam) {
+                currentTeam.events.push({
+                    name: eventMatch[1].trim(),
+                    rank: parseInt(eventMatch[2], 10)
+                });
+            }
+        }
+
+        if (currentTournament) {
+            if (currentTeam) {
+                currentTournament.teams.push(currentTeam);
+            }
+            tournaments.push(currentTournament);
+        }
+
+        return tournaments.reverse();
+    }
+
+    function countMedals(events) {
+        let gold = 0, silver = 0, bronze = 0;
+        events.forEach(e => {
+            if (e.rank === 1) gold++;
+            else if (e.rank === 2) silver++;
+            else if (e.rank === 3) bronze++;
+        });
+        return { gold, silver, bronze };
+    }
+
+    function createTable(team) {
+        const medals = countMedals(team.events);
+        const sortedEvents = [...team.events].sort((a, b) => {
+            if (a.rank !== b.rank) return a.rank - b.rank;
+            return a.name.localeCompare(b.name);
+        });
+
+        let html = '<div class="team-section">';
+        html += '<div class="team-name">' + team.name + '</div>';
+        html += '<div class="medals-summary">';
+        html += '<div class="medal-count"><span class="medal-icon medal-gold">1</span> ' + medals.gold + ' Gold</div>';
+        html += '<div class="medal-count"><span class="medal-icon medal-silver">2</span> ' + medals.silver + ' Silver</div>';
+        html += '<div class="medal-count"><span class="medal-icon medal-bronze">3</span> ' + medals.bronze + ' Bronze</div>';
+        html += '</div>';
+        html += '<table class="results-table">';
+        html += '<thead><tr><th>Rank</th><th>Event</th></tr></thead>';
+        html += '<tbody>';
+
+        sortedEvents.forEach(event => {
+            let rankClass = '';
+            if (event.rank === 1) rankClass = 'rank-1';
+            else if (event.rank === 2) rankClass = 'rank-2';
+            else if (event.rank === 3) rankClass = 'rank-3';
+
+            html += '<tr>';
+            html += '<td class="rank-cell ' + rankClass + '">' + event.rank + '</td>';
+            html += '<td class="event-cell">' + event.name + '</td>';
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        return html;
+    }
+
+    function renderResults(tournaments) {
+        const container = document.getElementById('results-container');
+        let html = '';
+
+        tournaments.forEach(tournament => {
+            html += '<div class="tournament">';
+            html += '<div class="tournament-title">' + tournament.name + '</div>';
+            tournament.teams.forEach(team => {
+                html += createTable(team);
+            });
+            html += '</div>';
+        });
+
+        container.innerHTML = html;
+    }
+
+    fetch('results.txt')
+        .then(response => response.text())
+        .then(text => {
+            const tournaments = parseResults(text);
+            renderResults(tournaments);
+        })
+        .catch(err => {
+            document.getElementById('results-container').innerHTML = '<p>Error loading results.</p>';
+        });
+})();
+</script>
 </body>
 </html>
