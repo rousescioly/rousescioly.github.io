@@ -18,6 +18,32 @@ html, body {
     overscroll-behavior: none;
 }
 
+html {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+    display: none;
+}
+
+.custom-scrollbar-track {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 14px;
+    height: 100vh;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.custom-scrollbar-thumb {
+    position: absolute;
+    right: 0;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
 body {
     margin: 0;
     font-family: Lora, sans-serif;

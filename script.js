@@ -98,7 +98,12 @@ async function fetchPageContent(path) {
         }
     });
     
-    return {contentElements, title, inlineScripts, bodyExtras};
+    const pageStyles = [];
+    doc.head.querySelectorAll('style').forEach(style => {
+        pageStyles.push(style.textContent);
+    });
+    
+    return {contentElements, title, inlineScripts, bodyExtras, pageStyles};
 }
 
 async function navigateTo(href, addHistory = true) {
@@ -110,6 +115,16 @@ async function navigateTo(href, addHistory = true) {
         const nav = card ? card.querySelector('.nav') : null;
         
         document.querySelectorAll('[data-page-extra]').forEach(el => el.remove());
+        document.querySelectorAll('[data-page-style]').forEach(el => el.remove());
+        
+        if (data.pageStyles && data.pageStyles.length > 0) {
+            data.pageStyles.forEach(styleContent => {
+                const style = document.createElement('style');
+                style.setAttribute('data-page-style', 'true');
+                style.textContent = styleContent;
+                document.head.appendChild(style);
+            });
+        }
         
         if (card) {
             Array.from(card.children).forEach(child => {
@@ -244,6 +259,14 @@ function initRouting() {
         const active = document.querySelector('.links a.active');
         if (active) moveUnderlineTo(active, false);
     });
+    
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+            const active = document.querySelector('.links a.active');
+            if (active) moveUnderlineTo(active, false);
+        });
+    }
+    
     const currentPath = window.location.pathname === '/' ? '/' : window.location.pathname;
     const initialLink = getLinks().find(a => a.getAttribute('href') === currentPath) || document.querySelector('.links a.active');
     if (initialLink) setActiveLink(initialLink, false);
@@ -254,7 +277,347 @@ document.addEventListener('DOMContentLoaded', () => {
     initRouting();
     initSVGAnimation();
     initWaveCanvas();
+    initCustomScrollbar();
 });
+
+function initCustomScrollbar() {
+    const track = document.createElement('div');
+    track.className = 'custom-scrollbar-track';
+    
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.className = 'custom-scrollbar-thumb';
+    const thumbCtx = thumbCanvas.getContext('2d', { willReadFrequently: true });
+    
+    track.appendChild(thumbCanvas);
+    document.body.appendChild(track);
+    
+    const rootStyles = getComputedStyle(document.documentElement);
+    const colorPrimary = rootStyles.getPropertyValue('--color-primary').trim() || '#8e220f';
+    const colorForeground = rootStyles.getPropertyValue('--color-foreground').trim() || '#fde8ce';
+    
+    const primaryRGB = parseColor(colorPrimary);
+    const foregroundRGB = parseColor(colorForeground);
+    
+    let isDragging = false;
+    let dragStartY = 0;
+    let dragStartScrollTop = 0;
+    let currentThumbTop = 0;
+    let currentThumbHeight = 0;
+    let thumbWidth = 10;
+    let rafId = null;
+    
+    let bgColorCache = new Map();
+    let cacheValid = false;
+    
+    function getDocumentHeight() {
+        return Math.max(
+            document.body.scrollHeight,
+            document.body.offsetHeight,
+            document.documentElement.clientHeight,
+            document.documentElement.scrollHeight,
+            document.documentElement.offsetHeight
+        );
+    }
+    
+    function getViewportHeight() {
+        return window.innerHeight;
+    }
+    
+    function parseColor(colorStr) {
+        if (colorStr.startsWith('#')) {
+            const hex = colorStr.slice(1);
+            if (hex.length === 3) {
+                return {
+                    r: parseInt(hex[0] + hex[0], 16),
+                    g: parseInt(hex[1] + hex[1], 16),
+                    b: parseInt(hex[2] + hex[2], 16)
+                };
+            }
+            return {
+                r: parseInt(hex.slice(0, 2), 16),
+                g: parseInt(hex.slice(2, 4), 16),
+                b: parseInt(hex.slice(4, 6), 16)
+            };
+        }
+        
+        const match = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (match) {
+            return {
+                r: parseInt(match[1]),
+                g: parseInt(match[2]),
+                b: parseInt(match[3])
+            };
+        }
+        
+        return { r: 0, g: 0, b: 0 };
+    }
+    
+    function colorDistance(c1, c2) {
+        const dr = c1.r - c2.r;
+        const dg = c1.g - c2.g;
+        const db = c1.b - c2.b;
+        return dr * dr + dg * dg + db * db;
+    }
+    
+    function getLuminance(color) {
+        const r = color.r / 255;
+        const g = color.g / 255;
+        const b = color.b / 255;
+        return 0.299 * r + 0.587 * g + 0.114 * b;
+    }
+    
+    function invalidateCache() {
+        cacheValid = false;
+        bgColorCache.clear();
+    }
+    
+    function getBackgroundColorAtPoint(x, y) {
+        const cacheKey = Math.round(y);
+        if (cacheValid && bgColorCache.has(cacheKey)) {
+            return bgColorCache.get(cacheKey);
+        }
+        
+        const elements = document.elementsFromPoint(x, y);
+        
+        for (const el of elements) {
+            if (el.classList.contains('custom-scrollbar-track') || 
+                el.classList.contains('custom-scrollbar-thumb')) {
+                continue;
+            }
+            
+            if (el.tagName === 'CANVAS' && el.id !== 'custom-scrollbar-thumb') {
+                try {
+                    const rect = el.getBoundingClientRect();
+                    const canvasX = (x - rect.left) * (el.width / rect.width);
+                    const canvasY = (y - rect.top) * (el.height / rect.height);
+                    const ctx = el.getContext('2d', { willReadFrequently: true });
+                    if (ctx && canvasX >= 0 && canvasY >= 0 && canvasX < el.width && canvasY < el.height) {
+                        const pixel = ctx.getImageData(Math.floor(canvasX), Math.floor(canvasY), 1, 1).data;
+                        if (pixel[3] > 0) {
+                            const color = { r: pixel[0], g: pixel[1], b: pixel[2] };
+                            bgColorCache.set(cacheKey, color);
+                            return color;
+                        }
+                    }
+                } catch (e) {
+                    // ntutil fatty moment
+                }
+            }
+            
+            if (el.tagName === 'IMG') {
+                continue;
+            }
+            
+            const style = getComputedStyle(el);
+            const bgColor = style.backgroundColor;
+            
+            if (bgColor && bgColor !== 'transparent' && bgColor !== 'rgba(0, 0, 0, 0)') {
+                const color = parseColor(bgColor);
+                bgColorCache.set(cacheKey, color);
+                return color;
+            }
+        }
+        
+        bgColorCache.set(cacheKey, primaryRGB);
+        return primaryRGB;
+    }
+    
+    function renderThumb() {
+        const dpr = window.devicePixelRatio || 1;
+        const width = thumbWidth;
+        const height = Math.ceil(currentThumbHeight);
+        
+        if (height <= 0) return;
+        
+        thumbCanvas.width = width * dpr;
+        thumbCanvas.height = height * dpr;
+        thumbCanvas.style.width = width + 'px';
+        thumbCanvas.style.height = height + 'px';
+        thumbCanvas.style.top = currentThumbTop + 'px';
+        
+        thumbCtx.setTransform(1, 0, 0, 1, 0, 0);
+        thumbCtx.scale(dpr, dpr);
+        
+        const sampleX = window.innerWidth - 25;
+        
+        const imageData = thumbCtx.createImageData(width * dpr, height * dpr);
+        const data = imageData.data;
+        
+        for (let row = 0; row < height; row++) {
+            const screenY = currentThumbTop + row;
+            const bgColor = getBackgroundColorAtPoint(sampleX, screenY);
+            
+            const distToPrimary = colorDistance(bgColor, primaryRGB);
+            const distToForeground = colorDistance(bgColor, foregroundRGB);
+            
+            let thumbColor;
+            if (distToPrimary < distToForeground) {
+                thumbColor = foregroundRGB;
+            } else {
+                thumbColor = primaryRGB;
+            }
+            
+            for (let subRow = 0; subRow < dpr; subRow++) {
+                const actualRow = Math.floor(row * dpr + subRow);
+                for (let col = 0; col < width * dpr; col++) {
+                    const idx = (actualRow * width * dpr + col) * 4;
+                    data[idx] = thumbColor.r;
+                    data[idx + 1] = thumbColor.g;
+                    data[idx + 2] = thumbColor.b;
+                    data[idx + 3] = 255;
+                }
+            }
+        }
+        
+        thumbCtx.setTransform(1, 0, 0, 1, 0, 0);
+        thumbCtx.putImageData(imageData, 0, 0);
+        
+        thumbCtx.globalCompositeOperation = 'destination-in';
+        thumbCtx.beginPath();
+        const radius = Math.min(width / 2, 5) * dpr;
+        roundRect(thumbCtx, 0, 0, width * dpr, height * dpr, radius);
+        thumbCtx.fill();
+        thumbCtx.globalCompositeOperation = 'source-over';
+        
+        cacheValid = true;
+    }
+    
+    function roundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+    
+    function updateScrollbar() {
+        const docHeight = getDocumentHeight();
+        const viewportHeight = getViewportHeight();
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        
+        if (docHeight <= viewportHeight) {
+            track.style.display = 'none';
+            return;
+        }
+        track.style.display = 'block';
+        
+        currentThumbHeight = Math.max((viewportHeight / docHeight) * viewportHeight, 30);
+        
+        const scrollableHeight = docHeight - viewportHeight;
+        const thumbTrackHeight = viewportHeight - currentThumbHeight;
+        currentThumbTop = (scrollTop / scrollableHeight) * thumbTrackHeight;
+        
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(renderThumb);
+    }
+    
+    thumbCanvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragStartY = e.clientY;
+        dragStartScrollTop = window.scrollY;
+        thumbCanvas.classList.add('dragging');
+        thumbWidth = 14;
+        updateScrollbar();
+        e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const docHeight = getDocumentHeight();
+        const viewportHeight = getViewportHeight();
+        const scrollableHeight = docHeight - viewportHeight;
+        const thumbTrackHeight = viewportHeight - currentThumbHeight;
+        
+        const deltaY = e.clientY - dragStartY;
+        const scrollDelta = (deltaY / thumbTrackHeight) * scrollableHeight;
+        
+        window.scrollTo(0, dragStartScrollTop + scrollDelta);
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            thumbCanvas.classList.remove('dragging');
+            thumbWidth = 10;
+            updateScrollbar();
+        }
+    });
+    
+    thumbCanvas.addEventListener('mouseenter', () => {
+        if (!isDragging) {
+            thumbWidth = 14;
+            updateScrollbar();
+        }
+    });
+    
+    thumbCanvas.addEventListener('mouseleave', () => {
+        if (!isDragging) {
+            thumbWidth = 10;
+            updateScrollbar();
+        }
+    });
+    
+    track.addEventListener('click', (e) => {
+        if (e.target === thumbCanvas) return;
+        
+        const trackRect = track.getBoundingClientRect();
+        const clickY = e.clientY - trackRect.top;
+        const viewportHeight = getViewportHeight();
+        const docHeight = getDocumentHeight();
+        const scrollableHeight = docHeight - viewportHeight;
+        const thumbTrackHeight = viewportHeight - currentThumbHeight;
+        
+        const targetThumbTop = clickY - currentThumbHeight / 2;
+        const scrollPosition = (targetThumbTop / thumbTrackHeight) * scrollableHeight;
+        
+        window.scrollTo({ top: scrollPosition, behavior: 'smooth' });
+    });
+    
+    window.addEventListener('scroll', () => {
+        invalidateCache();
+        updateScrollbar();
+    }, { passive: true });
+    
+    window.addEventListener('resize', () => {
+        invalidateCache();
+        updateScrollbar();
+    });
+    
+    const observer = new MutationObserver(() => {
+        invalidateCache();
+        requestAnimationFrame(updateScrollbar);
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+    });
+    
+    updateScrollbar();
+    
+    setTimeout(updateScrollbar, 100);
+    setTimeout(updateScrollbar, 500);
+    
+    let lastAnimationUpdate = 0;
+    function animationLoop(timestamp) {
+        if (timestamp - lastAnimationUpdate > 100) {
+            invalidateCache();
+            renderThumb();
+            lastAnimationUpdate = timestamp;
+        }
+        requestAnimationFrame(animationLoop);
+    }
+    requestAnimationFrame(animationLoop);
+}
 
 function initSVGAnimation() {
     const img = document.getElementById('title-svg');
@@ -371,14 +734,19 @@ function initSVGAnimation() {
     }
 }
 
+const waveState = {
+    offset: 0,
+    animationId: null,
+    initialized: false,
+    resizeHandler: null
+};
+
 function initWaveCanvas() {
     const canvas = document.getElementById('waveCanvas');
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
     let w, h;
-    let offset = 0;
-    let animationId;
     
     const pixelRatio = (window.devicePixelRatio || 1) * 1;
     
@@ -396,12 +764,17 @@ function initWaveCanvas() {
     }
     
     resize();
+    
+    if (waveState.resizeHandler) {
+        window.removeEventListener('resize', waveState.resizeHandler);
+    }
+    waveState.resizeHandler = resize;
     window.addEventListener('resize', resize);
     
     function draw() {
         ctx.clearRect(0, 0, w, h);
         
-        offset += 2 / 3;
+        waveState.offset += 2 / 3;
         
         const waveHeight = 7;
         const waveY = 30;
@@ -425,7 +798,7 @@ function initWaveCanvas() {
                 amplitude *= t * t * (3 - 2 * t);
             }
             
-            const angle = (x / wavelength) * Math.PI * 2 + (offset / wavelength) * Math.PI * 2;
+            const angle = (x / wavelength) * Math.PI * 2 + (waveState.offset / wavelength) * Math.PI * 2;
             const y = waveY + Math.sin(angle) * amplitude;
             ctx.lineTo(x, y);
         }
@@ -434,7 +807,11 @@ function initWaveCanvas() {
         ctx.closePath();
         ctx.fill();
         
-        animationId = requestAnimationFrame(draw);
+        waveState.animationId = requestAnimationFrame(draw);
+    }
+    
+    if (waveState.animationId) {
+        cancelAnimationFrame(waveState.animationId);
     }
     
     draw();
