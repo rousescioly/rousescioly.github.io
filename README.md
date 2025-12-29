@@ -15,7 +15,7 @@ Welcome to the **Rouse Science Olympiad Website**! This site is designed to be a
 
 To explore the site:
 
-1. Visit the [Rouse Science Olympiad Website](rousescioly.github.io).
+1. Visit the [Rouse Science Olympiad Website](https://rousescioly.github.io).
 2. Navigate through the sections using navigational bar at the top of the site.
 3. Explore different parts of the site and find what you need!
 
@@ -38,4 +38,4 @@ Note: Please use the `+website` alias for convenience and so our inbox doesn't e
 
 ---
 
-Built by [Sandeep Shenoy](sandeepshenoy.dev) • Maintained by Rouse SciOly Officers
+Built by [Sandeep Shenoy](https://sandeepshenoy.dev) • Maintained by Rouse SciOly Officers
