@@ -826,3 +826,11 @@ button {
         font-size: 1.4rem;
     }
 }
+
+@media (max-width: 800px) {
+    .event-card:hover,
+    .event-card:active {
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
