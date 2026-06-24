@@ -13,6 +13,8 @@
     document.head.appendChild(meta);
 })();
 
+const SCIOLY_API_URL = 'https://sandeepshenoy.dev/rso/scioly.json';
+
 function normalizeFetchPath(href) {
     try {
         const u = new URL(href, window.location.origin);
@@ -59,6 +61,23 @@ function moveUnderlineTo(el, animate = true) {
 function setActiveLink(targetLink, animate = true) {
     getLinks().forEach(a => a.classList.toggle('active', a === targetLink));
     if (targetLink) moveUnderlineTo(targetLink, animate);
+}
+
+function isHomePath(path) {
+    try {
+        const pathname = new URL(path, window.location.origin).pathname;
+        return pathname === '/' || pathname === '/index.html';
+    } catch (e) {
+        return path === '/' || path === '/index.html';
+    }
+}
+
+function getPathname(path) {
+    try {
+        return new URL(path, window.location.origin).pathname;
+    } catch (e) {
+        return path;
+    }
 }
 
 let titleAnimationToken = 0;
@@ -164,6 +183,7 @@ async function navigateTo(href, addHistory = true) {
         
         document.querySelectorAll('[data-page-extra]').forEach(el => el.remove());
         document.querySelectorAll('[data-page-style]').forEach(el => el.remove());
+        document.body.style.overflow = '';
         
         if (data.pageStyles && data.pageStyles.length > 0) {
             data.pageStyles.forEach(styleContent => {
@@ -192,6 +212,8 @@ async function navigateTo(href, addHistory = true) {
             });
         }
         
+        createFooter(href);
+        
         if (nav) {
             nav.classList.remove('open');
             const overlay = document.querySelector('.nav-overlay');
@@ -206,7 +228,7 @@ async function navigateTo(href, addHistory = true) {
         
         if (addHistory) history.pushState({path: href}, '', href);
         
-        const isHome = href === '/' || href === '/index.html';
+        const isHome = isHomePath(href);
         if (isHome) {
             initSVGAnimation();
         }
@@ -224,7 +246,10 @@ async function navigateTo(href, addHistory = true) {
                         console.error('Error executing inline script:', err);
                     }
                 });
+                initPageScripts(href);
             }, 0);
+        } else {
+            initPageScripts(href);
         }
     } catch (e) {
         console.error(e);
@@ -298,6 +323,241 @@ function createNav() {
     card.insertBefore(nav, card.firstChild);
 }
 
+function createFooter(path = window.location.pathname) {
+    const section = document.querySelector('.about-section');
+    if (!section) return;
+    
+    document.querySelectorAll('.site-footer').forEach(footer => footer.remove());
+    
+    const footer = document.createElement('footer');
+    footer.className = 'site-footer';
+    if (!isHomePath(path)) footer.classList.add('special');
+    
+    const left = document.createElement('div');
+    left.className = 'footer-left';
+    left.append('Made with ');
+    
+    const heart = document.createElement('img');
+    heart.src = '/assets/heart.svg';
+    heart.alt = 'heart';
+    heart.className = 'heart-beat';
+    left.appendChild(heart);
+    left.append(' by ');
+    
+    const credit = document.createElement('a');
+    credit.href = 'https://sandeepshenoy.dev';
+    credit.target = '_blank';
+    credit.rel = 'noopener';
+    credit.textContent = 'sandeepshenoy.dev';
+    left.appendChild(credit);
+    
+    const separator = document.createElement('span');
+    separator.className = 'footer-separator';
+    separator.textContent = ' \u2022 ';
+    left.appendChild(separator);
+    
+    const maintained = document.createElement('span');
+    maintained.className = 'footer-maintained';
+    maintained.textContent = 'Maintained by Rouse SciOly Officers';
+    left.appendChild(maintained);
+    
+    const right = document.createElement('div');
+    right.className = 'footer-right';
+    
+    const socialLinks = [
+        {
+            href: 'https://github.com/rousescioly/rousescioly.github.io',
+            label: 'GitHub',
+            icon: '/assets/github.svg'
+        },
+        {
+            href: 'https://www.instagram.com/rousescioly/',
+            label: 'Instagram',
+            icon: '/assets/insta.svg'
+        }
+    ];
+    
+    socialLinks.forEach(link => {
+        const anchor = document.createElement('a');
+        anchor.href = link.href;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener';
+        anchor.setAttribute('aria-label', link.label);
+        
+        const icon = document.createElement('img');
+        icon.src = link.icon;
+        icon.alt = link.label;
+        anchor.appendChild(icon);
+        right.appendChild(anchor);
+    });
+    
+    footer.appendChild(left);
+    footer.appendChild(right);
+    section.appendChild(footer);
+}
+
+let upcomingEventsLoadToken = 0;
+let eventEscapeListenerBound = false;
+
+function getEventDate(timestamp) {
+    const value = Number(timestamp);
+    if (!Number.isFinite(value)) return null;
+    
+    const date = new Date(value * 1000);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatEventDate(timestamp) {
+    const date = getEventDate(timestamp);
+    if (!date) return 'Date will be revealed soon!';
+    
+    return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+function formatEventTime(timestamp) {
+    const date = getEventDate(timestamp);
+    if (!date) return '';
+    
+    return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
+}
+
+function formatEventCardDate(timestamp) {
+    const date = getEventDate(timestamp);
+    if (!date) return { label: 'TBD', isKnown: false };
+    
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    const day = date.getDate();
+    return { month, day, isKnown: true };
+}
+
+function getEventImageUrl(img) {
+    if (!img || img === 'fallback.jpg') {
+        return '/assets/headers/fallback.jpg';
+    }
+    if (img.startsWith('http://') || img.startsWith('https://')) {
+        return img;
+    }
+    return '/assets/headers/' + img;
+}
+
+function openEventModal(event) {
+    const overlay = document.getElementById('event-modal-overlay');
+    if (!overlay) return;
+    
+    document.getElementById('event-modal-header').style.backgroundImage = `url('${getEventImageUrl(event.img)}')`;
+    document.getElementById('event-modal-title').textContent = event.title;
+    document.getElementById('event-modal-date').textContent = formatEventDate(event.datetime);
+    
+    const time = document.getElementById('event-modal-time');
+    const timeRow = time.closest('.event-modal-detail');
+    const hasKnownDate = Boolean(getEventDate(event.datetime));
+    time.textContent = hasKnownDate ? formatEventTime(event.datetime) : '';
+    if (timeRow) timeRow.style.display = hasKnownDate ? '' : 'none';
+    
+    document.getElementById('event-modal-location').textContent = event.location;
+    document.getElementById('event-modal-description').textContent = event.description;
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEventModal() {
+    const overlay = document.getElementById('event-modal-overlay');
+    if (!overlay) return;
+    
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function createEventCard(event) {
+    const dateLabel = formatEventCardDate(event.datetime);
+    const dateMarkup = dateLabel.isKnown
+        ? `<span class="event-card-month">${dateLabel.month}</span>
+                <span class="event-card-day">${dateLabel.day}</span>`
+        : `<span class="event-card-tbd">${dateLabel.label}</span>`;
+    const card = document.createElement('div');
+    card.className = 'event-card';
+    card.innerHTML = `
+        <div class="event-card-image" style="background-image: url('${getEventImageUrl(event.img)}')">
+            <div class="event-card-date${dateLabel.isKnown ? '' : ' unknown'}">
+                ${dateMarkup}
+            </div>
+        </div>
+        <div class="event-card-content">
+            <h3 class="event-card-title">${event.title}</h3>
+            <p class="event-card-location">${event.location}</p>
+        </div>
+    `;
+    card.addEventListener('click', () => openEventModal(event));
+    return card;
+}
+
+async function loadUpcomingEvents() {
+    const grid = document.getElementById('events-grid');
+    if (!grid || !document.getElementById('event-modal-overlay')) return;
+    
+    const loadToken = ++upcomingEventsLoadToken;
+    
+    try {
+        const response = await fetch(SCIOLY_API_URL, {cache: 'no-store'});
+        const data = await response.json();
+        const events = data.events || [];
+        
+        if (loadToken !== upcomingEventsLoadToken || !document.body.contains(grid)) return;
+        
+        if (events.length > 0) {
+            grid.innerHTML = '';
+            events.forEach(event => {
+                grid.appendChild(createEventCard(event));
+            });
+        } else {
+            grid.innerHTML = '<div class="events-empty">No upcoming events at the moment.</div>';
+        }
+    } catch (error) {
+        console.error('Failed to load events:', error);
+        if (loadToken !== upcomingEventsLoadToken || !document.body.contains(grid)) return;
+        grid.innerHTML = '<div class="events-error">Failed to load events. Please try again later. Note: sandeepshenoy.dev must be unblocked to view items.</div>';
+    }
+}
+
+function initUpcomingEventsPage() {
+    const overlay = document.getElementById('event-modal-overlay');
+    const closeButton = document.getElementById('event-modal-close');
+    if (!overlay || !closeButton) return;
+    
+    if (!overlay.dataset.eventsBound) {
+        closeButton.addEventListener('click', closeEventModal);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeEventModal();
+        });
+        overlay.dataset.eventsBound = 'true';
+    }
+    
+    if (!eventEscapeListenerBound) {
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeEventModal();
+        });
+        eventEscapeListenerBound = true;
+    }
+    
+    loadUpcomingEvents();
+}
+
+function initPageScripts(path = window.location.pathname) {
+    const pathname = getPathname(path);
+    if (pathname === '/upcoming-events' || pathname === '/upcoming-events/' || pathname === '/upcoming-events/index.html') {
+        initUpcomingEventsPage();
+    }
+}
+
 function initRouting() {
     window.addEventListener('popstate', () => {
         const path = window.location.pathname;
@@ -322,9 +582,11 @@ function initRouting() {
 
 document.addEventListener('DOMContentLoaded', () => {
     createNav();
+    createFooter();
     initRouting();
     initSVGAnimation();
     initWaveCanvas();
+    initPageScripts();
     initCustomScrollbar();
 });
 

@@ -565,6 +565,21 @@ button {
     margin-top: 2px;
 }
 
+.event-card-date.unknown {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+}
+
+.event-card-tbd {
+    display: block;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.5px;
+}
+
 .event-card-content {
     padding: 1rem 1.25rem 1.25rem;
 }
