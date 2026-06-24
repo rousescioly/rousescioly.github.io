@@ -16,13 +16,9 @@
 function normalizeFetchPath(href) {
     try {
         const u = new URL(href, window.location.origin);
-        let p = u.pathname;
-        if (p.endsWith('/')) p += 'index.html';
-        if (p === '/') p = '/index.html';
-        return p;
+        return u.pathname || '/';
     } catch (e) {
-        if (href.endsWith('/')) return href + 'index.html';
-        if (href === '/') return '/index.html';
+        if (href === '') return '/';
         return href;
     }
 }
@@ -63,6 +59,58 @@ function moveUnderlineTo(el, animate = true) {
 function setActiveLink(targetLink, animate = true) {
     getLinks().forEach(a => a.classList.toggle('active', a === targetLink));
     if (targetLink) moveUnderlineTo(targetLink, animate);
+}
+
+let titleAnimationToken = 0;
+let titleAnimationTimer = null;
+const emptyTitlePlaceholder = '\u200B';
+
+function animateDocumentTitle(nextTitle) {
+    if (!nextTitle || document.title === nextTitle) return;
+    
+    titleAnimationToken += 1;
+    const token = titleAnimationToken;
+    const targetChars = Array.from(nextTitle);
+    const deleteDelay = 14;
+    const typeDelay = 24;
+    const typeStartDelay = 70;
+    
+    if (titleAnimationTimer) {
+        clearTimeout(titleAnimationTimer);
+        titleAnimationTimer = null;
+    }
+    
+    function schedule(fn, delay) {
+        titleAnimationTimer = setTimeout(() => {
+            if (token === titleAnimationToken) fn();
+        }, delay);
+    }
+    
+    function erase() {
+        const currentTitle = document.title === emptyTitlePlaceholder ? '' : document.title;
+        const currentChars = Array.from(currentTitle);
+        
+        if (currentChars.length > 0) {
+            document.title = currentChars.slice(0, -1).join('') || emptyTitlePlaceholder;
+            schedule(erase, deleteDelay);
+            return;
+        }
+        
+        schedule(() => type(0), typeStartDelay);
+    }
+    
+    function type(index) {
+        document.title = targetChars.slice(0, index).join('') || emptyTitlePlaceholder;
+        
+        if (index < targetChars.length) {
+            schedule(() => type(index + 1), typeDelay);
+            return;
+        }
+        
+        titleAnimationTimer = null;
+    }
+    
+    erase();
 }
 
 async function fetchPageContent(path) {
@@ -109,7 +157,7 @@ async function fetchPageContent(path) {
 async function navigateTo(href, addHistory = true) {
     try {
         const data = await fetchPageContent(href);
-        if (data.title) document.title = data.title;
+        if (data.title) animateDocumentTitle(data.title);
         
         const card = document.querySelector('.card');
         const nav = card ? card.querySelector('.nav') : null;

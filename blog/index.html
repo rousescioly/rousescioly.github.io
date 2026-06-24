@@ -124,13 +124,25 @@
     
     async function loadBlogPosts() {
         const grid = document.getElementById('events-grid');
+        if (!grid) return;
+        
+        const loadId = Date.now().toString();
+        grid.dataset.blogLoadId = loadId;
+        
         try {
-            const response = await fetch(API_URL);
+            const response = await fetch(API_URL, { cache: 'no-store' });
             const data = await response.json();
+            const now = Date.now();
+            const posts = (data.blog || []).filter(post => {
+                const timestamp = Number(post.datetime);
+                return !Number.isFinite(timestamp) || timestamp * 1000 <= now;
+            });
             
-            if (data.blog && data.blog.length > 0) {
+            if (!document.body.contains(grid) || grid.dataset.blogLoadId !== loadId) return;
+            
+            if (posts.length > 0) {
                 grid.innerHTML = '';
-                data.blog.forEach(post => {
+                posts.forEach(post => {
                     grid.appendChild(createBlogCard(post));
                 });
             } else {
@@ -138,6 +150,7 @@
             }
         } catch (error) {
             console.error('Failed to load blog posts:', error);
+            if (!document.body.contains(grid) || grid.dataset.blogLoadId !== loadId) return;
             grid.innerHTML = '<div class="events-error">Failed to load blog posts. Please try again later. Note: sandeepshenoy.dev must be unblocked to view items.</div>';
         }
     }
