@@ -4,19 +4,113 @@
     <meta charset="UTF-8">
     <title>Rouse SciOly</title>
     <link rel="stylesheet" href="../styles.css">
+    <style>
+        #typing-text::after {
+            content: "|";
+            display: inline-block;
+            margin-left: 2px;
+            animation: blink 1s steps(1) infinite;
+        }
+
+        #typing-text.finished::after {
+            display: none;
+        }
+
+        #typing-text[data-restored="true"]::after {
+            display: none;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="card">
         <div class="content">
             <img id="title-svg" src="../assets/title.svg" alt="Rouse SciOly Logo">
-            <p>Create. Design. Compete. Win.</p>
+            <p id="typing-text">Est. 2022</p>
         </div>
+
         <canvas id="waveCanvas"></canvas>
+
         <div class="about-section" id="about-section">
             <h2>About Us</h2>
-            <p>Rouse Science Olympiad Team is dedicated to creating a love for science among our student competitors. We compete at several in-person events at places like Texas A&M and UT Austin, and we also compete online. We welcome all students, regardless of grade or experience!</p>
+            <p>
+                Rouse Science Olympiad Team is dedicated to creating a love for science among our student competitors.
+                We compete at several in-person events at places like Texas A&M and UT Austin, and we also compete online.
+                We welcome all students, regardless of grade or experience!
+            </p>
         </div>
     </div>
-<script src="../script.js"></script>
+
+    <script src="../script.js"></script>
+
+    <script>
+        const words = [
+            "Create.",
+            "Design.",
+            "Compete.",
+            "Win.",
+            "Est. 2022"
+        ];
+
+        const typingText = document.getElementById("typing-text");
+
+        let wordIndex = 0;
+        let charIndex = 0;
+        let deleting = false;
+
+        const typeSpeed = 50;
+        const deleteSpeed = 25;
+        const pauseTime = 600;
+
+        if (typingText.dataset.typingInit === "1") {
+
+        } else {
+            typingText.dataset.typingInit = "1";
+
+            function animateText() {
+                const current = words[wordIndex];
+
+                if (!deleting) {
+                    typingText.textContent = current.substring(0, charIndex + 1);
+                    charIndex++;
+
+                    if (charIndex === current.length) {
+                        if (wordIndex === words.length - 1) {
+                            typingText.textContent = "Est. 2022";
+                            typingText.classList.add("finished");
+
+                            typingText.setAttribute("data-restored", "true");
+
+                            sessionStorage.setItem("homeTyped", "1");
+                            return;
+                        }
+
+                        deleting = true;
+                        setTimeout(animateText, pauseTime);
+                        return;
+                    }
+
+                    setTimeout(animateText, typeSpeed);
+                } else {
+                    typingText.textContent = current.substring(0, charIndex - 1);
+                    charIndex--;
+
+                    if (charIndex === 0) {
+                        deleting = false;
+                        wordIndex++;
+                    }
+
+                    setTimeout(animateText, deleteSpeed);
+                }
+            }
+
+            animateText();
+        }
+    </script>
 </body>
 </html>
