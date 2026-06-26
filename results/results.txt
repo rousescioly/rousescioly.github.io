@@ -391,3 +391,95 @@ Materials Science - 205
 Remote Sensing - 201
 Rocks and Minerals - 97
 Forestry - 29
+
+
+University of Texas at Austin Regional Tournament 03/07/26
+==========================================================
+
+Rouse High School A
+Anatomy and Physiology - 7
+Astronomy - 5
+Bungee Drop - 9
+Chemistry Lab - 12
+Circuit Lab - 3
+Codebusters - 7
+Designer Genes - 5
+Disease Detectives - 4
+Dynamic Planet - 5
+Electric Vehicle - 8
+Entomology - 5
+Experimental Design - 7
+Forensics - 5
+GeoWizard - 6
+Helicopter - 8
+History of Science - 3
+Hovercraft - 3
+Machines - 6
+Materials Science - 2
+Remote Sensing - 5
+Robot Tour - 7
+Rocket Science - 6
+Rocks and Minerals - 7
+Science Word - 8
+Silicon Showdown - 3
+
+Rouse High School B
+Anatomy and Physiology - 4
+Astronomy - 9
+Boomilever - 5
+Bungee Drop - 7
+Chemistry Lab - 8
+Circuit Lab - 7
+Codebusters - 8
+Designer Genes - 4
+Disease Detectives - 5
+Dynamic Planet - 8
+Electric Vehicle - 3
+Engineering CAD - 7
+Entomology - 7
+Experimental Design - 5
+GeoWizard - 4
+Helicopter - 4
+History of Science - 5
+Hovercraft - 4
+Machines - 12
+Materials Science - 8
+Remote Sensing - 11
+Robot Tour - 14
+Rocket Science - 5
+Science Word - 7
+Water Quality - 9
+
+
+Texas State Science Olympiad Tournament 04/17/26
+================================================
+
+Rouse High School
+Anatomy and Physiology - 22
+Astronomy - N/A
+Boomilever - N/A
+Bungee Drop - 19
+Chemistry Lab - N/A
+Circuit Lab - 13
+Codebusters - 19
+Designer Genes - 12
+Disease Detectives - 25
+Dynamic Planet - 20
+Electric Vehicle - 13
+Engineering CAD - N/A
+Entomology - 13
+Experimental Design - 25
+Forensics - 26
+GeoWizard - 7
+Helicopter - 21
+History of Science - 8
+Hovercraft - 12
+Machines - 24
+Materials Science - 8
+Remote Sensing - 7
+Robot Tour - 19
+Rocket Science - 14
+Rocks and Minerals - 15
+Science Word - N/A
+Silicon Showdown - 2
+Water Quality - N/A
