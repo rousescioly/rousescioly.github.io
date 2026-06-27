@@ -25,6 +25,56 @@
                 opacity: 0;
             }
         }
+
+        .carousel-wrapper {
+            width: 100vw;
+            overflow: hidden;
+            position: relative;
+            margin: 2rem calc(-50vw + 50%);
+        }
+
+        .carousel-track {
+            display: flex;
+            width: max-content;
+            animation: scroll-carousel 20s linear infinite;
+        }
+
+        .carousel-track img {
+            height: 350px;
+            width: auto;
+            flex-shrink: 0;
+            display: block;
+        }
+
+        @keyframes scroll-carousel {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .interest-link {
+            display: block;
+            text-align: center;
+            margin: 1.5rem 0;
+            font-size: 1.1rem;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .interest-link .arrow {
+            display: block;
+            font-size: 1.5rem;
+            animation: bounce 1.2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(6px); }
+        }
+
+        .join-section {
+            margin-top: 2rem;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -36,13 +86,28 @@
 
         <canvas id="waveCanvas"></canvas>
 
-        <div class="about-section" id="about-section">
+        <div class="about-section">
             <h2>About Us</h2>
             <p>
                 Rouse Science Olympiad Team is dedicated to creating a love for science among our student competitors.
                 We compete at several in-person events at places like Texas A&M and UT Austin, and we also compete online.
                 We welcome all students, regardless of grade or experience!
             </p>
+
+            <div class="carousel-wrapper">
+                <div class="carousel-track">
+                    <img src="../assets/carousel/carousel.png" alt="Rouse SciOly Highlights">
+                    <img src="../assets/carousel/carousel.png" alt="Rouse SciOly Highlights">
+                    <img src="../assets/carousel/carousel.png" alt="Rouse SciOly Highlights">
+                    <img src="../assets/carousel/carousel.png" alt="Rouse SciOly Highlights">
+                </div>
+            </div>
+            <div class="join-section" id="interest-form">
+                <h2>Join Us</h2>
+                <p>
+                    Want to be part of the Rouse Science Olympiad Team? Fill out our <a href="https://forms.gle/TRo482vEsQmf17qH9" target="_blank" rel="noopener"><strong>interest form</strong></a> and we'll be in touch!
+                </p>
+            </div>
         </div>
     </div>
 
