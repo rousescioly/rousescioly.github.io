@@ -51,6 +51,24 @@
             100% { transform: translateX(-50%); }
         }
 
+        .carousel-track-reverse {
+            display: flex;
+            width: max-content;
+            animation: scroll-carousel-reverse 20s linear infinite;
+        }
+
+        .carousel-track-reverse img {
+            height: 350px;
+            width: auto;
+            flex-shrink: 0;
+            display: block;
+        }
+
+        @keyframes scroll-carousel-reverse {
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(0); }
+        }
+
         .interest-link {
             display: block;
             text-align: center;
@@ -102,6 +120,24 @@
                     <img src="../assets/carousel/carousel.png" alt="Rouse SciOly Highlights">
                 </div>
             </div>
+
+            <div class="join-section" id="interest-form">
+                <h2>What is SciOly?</h2>
+                <p>
+                    Science Olympiad programs involves participating in academic competitions, consisting of a series of 23 team events in the high school division (Division C). Each year, a portion of the events are rotated to reflect the ever-changing nature of genetics, earth science, chemistry, anatomy, physics, geology, mechanical engineering and technology.</p>
+                    <p> By combining events from all disciplines, Science Olympiad encourages a wide cross-section of students to get involved. Emphasis is placed on active, hands-on group participation. Through Science Olympiad, students, teachers, parents, principals and business leaders bond together and work toward a shared goal.
+                </p>
+            </div>
+            
+            <div class="carousel-wrapper">
+                <div class="carousel-track-reverse">
+                    <img src="../assets/carousel/events.png" alt="Rouse SciOly Events">
+                    <img src="../assets/carousel/events.png" alt="Rouse SciOly Events">
+                    <img src="../assets/carousel/events.png" alt="Rouse SciOly Events">
+                    <img src="../assets/carousel/events.png" alt="Rouse SciOly Events">
+                </div>
+            </div>
+
             <div class="join-section" id="interest-form">
                 <h2>Join Us</h2>
                 <p>
