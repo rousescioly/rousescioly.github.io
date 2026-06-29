@@ -15,6 +15,68 @@
 
 const SCIOLY_API_URL = 'https://sandeepshenoy.dev/rso/scioly.json';
 
+const PAGE_PATHS = {
+    home: ['/', '/index.html'],
+    upcomingEvents: ['/upcoming-events', '/upcoming-events/', '/upcoming-events/index.html'],
+    blog: ['/blog', '/blog/', '/blog/index.html'],
+    resources: ['/resources', '/resources/', '/resources/index.html'],
+    results: ['/results', '/results/', '/results/index.html']
+};
+
+function isPath(path, names) {
+    const pathname = getPathname(path);
+    return names.some(name => PAGE_PATHS[name].includes(pathname));
+}
+
+function clearElement(el) {
+    if (!el) return;
+    while (el.firstChild) {
+        el.removeChild(el.firstChild);
+    }
+}
+
+function setStatusMessage(container, className, text) {
+    if (!container) return;
+    clearElement(container);
+    const message = document.createElement('div');
+    message.className = className;
+    message.textContent = text;
+    container.appendChild(message);
+}
+
+function setButtonExpanded(button, expanded) {
+    if (!button) return;
+    button.classList.toggle('open', expanded);
+    button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+}
+
+function closeNav(nav, menuToggle) {
+    if (nav) nav.classList.remove('open');
+    const overlay = document.querySelector('.nav-overlay');
+    if (overlay) overlay.remove();
+    setButtonExpanded(menuToggle || (nav ? nav.querySelector('.menu-toggle') : null), false);
+}
+
+function imageUrl(folder, fileName, fallbackFile) {
+    if (!fileName || fileName === fallbackFile) {
+        return `/assets/${folder}/${fallbackFile}`;
+    }
+    if (fileName.startsWith('http://') || fileName.startsWith('https://')) {
+        return fileName;
+    }
+    return `/assets/${folder}/${fileName}`;
+}
+
+function getHeaderImageUrl(img) {
+    return imageUrl('headers', img, 'fallback.jpg');
+}
+
+function getIconUrl(icon) {
+    if (!icon) return '';
+    if (icon.startsWith('http://') || icon.startsWith('https://')) return icon;
+    return `/assets/icons/${icon}`;
+}
+
 function normalizeFetchPath(href) {
     try {
         const u = new URL(href, window.location.origin);
@@ -64,12 +126,7 @@ function setActiveLink(targetLink, animate = true) {
 }
 
 function isHomePath(path) {
-    try {
-        const pathname = new URL(path, window.location.origin).pathname;
-        return pathname === '/' || pathname === '/index.html';
-    } catch (e) {
-        return path === '/' || path === '/index.html';
-    }
+    return isPath(path, ['home']);
 }
 
 function getPathname(path) {
@@ -151,11 +208,6 @@ async function fetchPageContent(path) {
         });
     }
     
-    const inlineScripts = [];
-    doc.body.querySelectorAll('script:not([src])').forEach(script => {
-        inlineScripts.push(script.textContent);
-    });
-    
     const bodyExtras = [];
     Array.from(doc.body.children).forEach(child => {
         if (child.tagName !== 'SCRIPT' && !child.classList.contains('card')) {
@@ -170,7 +222,7 @@ async function fetchPageContent(path) {
         pageStyles.push(style.textContent);
     });
     
-    return {contentElements, title, inlineScripts, bodyExtras, pageStyles};
+    return {contentElements, title, bodyExtras, pageStyles};
 }
 
 async function navigateTo(href, addHistory = true) {
@@ -213,14 +265,7 @@ async function navigateTo(href, addHistory = true) {
         }
         
         createFooter(href);
-        
-        if (nav) {
-            nav.classList.remove('open');
-            const overlay = document.querySelector('.nav-overlay');
-            if (overlay) overlay.remove();
-            const mt = nav.querySelector('.menu-toggle');
-            if (mt) mt.classList.remove('open');
-        }
+        closeNav(nav);
         
         const links = getLinks();
         const targetLink = links.find(a => a.getAttribute('href') === href || a.href.endsWith(href));
@@ -234,23 +279,7 @@ async function navigateTo(href, addHistory = true) {
         }
         initWaveCanvas();
         
-        if (data.inlineScripts && data.inlineScripts.length > 0) {
-            setTimeout(() => {
-                data.inlineScripts.forEach(scriptContent => {
-                    try {
-                        const script = document.createElement('script');
-                        script.textContent = scriptContent;
-                        document.body.appendChild(script);
-                        document.body.removeChild(script);
-                    } catch (err) {
-                        console.error('Error executing inline script:', err);
-                    }
-                });
-                initPageScripts(href);
-            }, 0);
-        } else {
-            initPageScripts(href);
-        }
+        initPageScripts(href);
     } catch (e) {
         console.error(e);
     }
@@ -275,6 +304,7 @@ function createNav() {
     logoWrap.className = 'logo';
     const logoImg = document.createElement('img');
     logoImg.src = '/assets/logo.svg';
+    logoImg.alt = 'Rouse SciOly';
     logoWrap.appendChild(logoImg);
     const linksWrap = document.createElement('div');
     linksWrap.className = 'links';
@@ -287,17 +317,20 @@ function createNav() {
             if (!href || (href.startsWith('http') && !href.startsWith(window.location.origin))) return;
             e.preventDefault();
             navigateTo(href, true);
-                nav.classList.remove('open');
-                const overlay = document.querySelector('.nav-overlay');
-                if (overlay) overlay.remove();
-                menuToggle.classList.remove('open');
+            closeNav(nav, menuToggle);
         });
         linksWrap.appendChild(a);
     });
         const menuToggle = document.createElement('button');
         menuToggle.className = 'menu-toggle';
+        menuToggle.type = 'button';
         menuToggle.setAttribute('aria-label', 'Toggle menu');
-        menuToggle.innerHTML = '<img src="/assets/hamburger.svg" alt="Menu" class="hamburger-icon">';
+        menuToggle.setAttribute('aria-expanded', 'false');
+        const hamburgerIcon = document.createElement('img');
+        hamburgerIcon.src = '/assets/hamburger.svg';
+        hamburgerIcon.alt = 'Menu';
+        hamburgerIcon.className = 'hamburger-icon';
+        menuToggle.appendChild(hamburgerIcon);
         menuToggle.addEventListener('click', () => {
             const opening = !nav.classList.contains('open');
             nav.classList.toggle('open');
@@ -305,16 +338,12 @@ function createNav() {
                 const overlay = document.createElement('div');
                 overlay.className = 'nav-overlay';
                 overlay.addEventListener('click', () => {
-                    nav.classList.remove('open');
-                    overlay.remove();
-                    menuToggle.classList.remove('open');
+                    closeNav(nav, menuToggle);
                 });
                 document.body.appendChild(overlay);
-                menuToggle.classList.add('open');
+                setButtonExpanded(menuToggle, true);
             } else {
-                const overlay = document.querySelector('.nav-overlay');
-                if (overlay) overlay.remove();
-                menuToggle.classList.remove('open');
+                closeNav(nav, menuToggle);
             }
         });
     nav.appendChild(logoWrap);
@@ -397,8 +426,6 @@ function createFooter(path = window.location.pathname) {
 }
 
 let upcomingEventsLoadToken = 0;
-let eventEscapeListenerBound = false;
-
 function getEventDate(timestamp) {
     const value = Number(timestamp);
     if (!Number.isFinite(value)) return null;
@@ -440,13 +467,7 @@ function formatEventCardDate(timestamp) {
 }
 
 function getEventImageUrl(img) {
-    if (!img || img === 'fallback.jpg') {
-        return '/assets/headers/fallback.jpg';
-    }
-    if (img.startsWith('http://') || img.startsWith('https://')) {
-        return img;
-    }
-    return '/assets/headers/' + img;
+    return getHeaderImageUrl(img);
 }
 
 function openEventModal(event) {
@@ -479,24 +500,51 @@ function closeEventModal() {
 
 function createEventCard(event) {
     const dateLabel = formatEventCardDate(event.datetime);
-    const dateMarkup = dateLabel.isKnown
-        ? `<span class="event-card-month">${dateLabel.month}</span>
-                <span class="event-card-day">${dateLabel.day}</span>`
-        : `<span class="event-card-tbd">${dateLabel.label}</span>`;
     const card = document.createElement('div');
     card.className = 'event-card';
-    card.innerHTML = `
-        <div class="event-card-image" style="background-image: url('${getEventImageUrl(event.img)}')">
-            <div class="event-card-date${dateLabel.isKnown ? '' : ' unknown'}">
-                ${dateMarkup}
-            </div>
-        </div>
-        <div class="event-card-content">
-            <h3 class="event-card-title">${event.title}</h3>
-            <p class="event-card-location">${event.location}</p>
-        </div>
-    `;
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+
+    const image = document.createElement('div');
+    image.className = 'event-card-image';
+    image.style.backgroundImage = `url('${getEventImageUrl(event.img)}')`;
+
+    const date = document.createElement('div');
+    date.className = `event-card-date${dateLabel.isKnown ? '' : ' unknown'}`;
+    if (dateLabel.isKnown) {
+        const month = document.createElement('span');
+        month.className = 'event-card-month';
+        month.textContent = dateLabel.month;
+        const day = document.createElement('span');
+        day.className = 'event-card-day';
+        day.textContent = dateLabel.day;
+        date.append(month, day);
+    } else {
+        const tbd = document.createElement('span');
+        tbd.className = 'event-card-tbd';
+        tbd.textContent = dateLabel.label;
+        date.appendChild(tbd);
+    }
+    image.appendChild(date);
+
+    const content = document.createElement('div');
+    content.className = 'event-card-content';
+    const title = document.createElement('h3');
+    title.className = 'event-card-title';
+    title.textContent = event.title || 'Untitled event';
+    const location = document.createElement('p');
+    location.className = 'event-card-location';
+    location.textContent = event.location || 'Location TBD';
+    content.append(title, location);
+
+    card.append(image, content);
     card.addEventListener('click', () => openEventModal(event));
+    card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openEventModal(event);
+        }
+    });
     return card;
 }
 
@@ -514,17 +562,17 @@ async function loadUpcomingEvents() {
         if (loadToken !== upcomingEventsLoadToken || !document.body.contains(grid)) return;
         
         if (events.length > 0) {
-            grid.innerHTML = '';
+            clearElement(grid);
             events.forEach(event => {
                 grid.appendChild(createEventCard(event));
             });
         } else {
-            grid.innerHTML = '<div class="events-empty">No upcoming events at the moment.</div>';
+            setStatusMessage(grid, 'events-empty', 'No upcoming events at the moment.');
         }
     } catch (error) {
         console.error('Failed to load events:', error);
         if (loadToken !== upcomingEventsLoadToken || !document.body.contains(grid)) return;
-        grid.innerHTML = '<div class="events-error">Failed to load events. Please try again later. Note: sandeepshenoy.dev must be unblocked to view items.</div>';
+        setStatusMessage(grid, 'events-error', 'Failed to load events. Please try again later. Note: sandeepshenoy.dev must be unblocked to view items.');
     }
 }
 
@@ -541,20 +589,503 @@ function initUpcomingEventsPage() {
         overlay.dataset.eventsBound = 'true';
     }
     
-    if (!eventEscapeListenerBound) {
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeEventModal();
-        });
-        eventEscapeListenerBound = true;
-    }
-    
     loadUpcomingEvents();
 }
 
+function initHomePage() {
+    const typingText = document.getElementById('typing-text');
+    if (!typingText || typingText.dataset.typingInit === '1') return;
+
+    const words = [
+        'Create.',
+        'Design.',
+        'Compete.',
+        'Win.',
+        'Est. 2022'
+    ];
+
+    let wordIndex = 0;
+    let charIndex = 0;
+    let deleting = false;
+    const typeSpeed = 50;
+    const deleteSpeed = 25;
+    const pauseTime = 600;
+
+    typingText.dataset.typingInit = '1';
+
+    function animateText() {
+        if (!document.body.contains(typingText)) return;
+
+        const current = words[wordIndex];
+
+        if (!deleting) {
+            typingText.textContent = current.substring(0, charIndex + 1);
+            charIndex++;
+
+            if (charIndex === current.length) {
+                if (wordIndex === words.length - 1) {
+                    typingText.textContent = 'Est. 2022';
+                    typingText.classList.add('finished');
+                    typingText.setAttribute('data-restored', 'true');
+                    sessionStorage.setItem('homeTyped', '1');
+                    return;
+                }
+
+                deleting = true;
+                setTimeout(animateText, pauseTime);
+                return;
+            }
+
+            setTimeout(animateText, typeSpeed);
+            return;
+        }
+
+        typingText.textContent = current.substring(0, charIndex - 1);
+        charIndex--;
+
+        if (charIndex === 0) {
+            deleting = false;
+            wordIndex++;
+        }
+
+        setTimeout(animateText, deleteSpeed);
+    }
+
+    animateText();
+}
+
+let blogLoadToken = 0;
+let resourcesLoadToken = 0;
+
+function formatShortDate(timestamp) {
+    const date = getEventDate(timestamp) || new Date();
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    const day = date.getDate();
+    return { month, day };
+}
+
+function parseMarkdown(text) {
+    const fragment = document.createDocumentFragment();
+    const lines = String(text || '').split('\n');
+
+    lines.forEach((line, lineIndex) => {
+        if (lineIndex > 0) fragment.appendChild(document.createElement('br'));
+
+        const parts = line.split(/(\*\*.+?\*\*|\*.+?\*)/g);
+        parts.forEach(part => {
+            if (!part) return;
+            if (part.startsWith('**') && part.endsWith('**')) {
+                const strong = document.createElement('strong');
+                strong.textContent = part.slice(2, -2).replace(/\\!/g, '!');
+                fragment.appendChild(strong);
+                return;
+            }
+            if (part.startsWith('*') && part.endsWith('*')) {
+                const em = document.createElement('em');
+                em.textContent = part.slice(1, -1).replace(/\\!/g, '!');
+                fragment.appendChild(em);
+                return;
+            }
+            fragment.appendChild(document.createTextNode(part.replace(/\\!/g, '!')));
+        });
+    });
+
+    return fragment;
+}
+
+function openBlogModal(post) {
+    const overlay = document.getElementById('blog-modal-overlay');
+    if (!overlay) return;
+
+    document.getElementById('blog-modal-header').style.backgroundImage = "url('/assets/headers/blog.png')";
+    document.getElementById('blog-modal-title').textContent = post.title || 'Untitled post';
+    document.getElementById('blog-modal-date').textContent = formatEventDate(post.datetime);
+    document.getElementById('blog-modal-author').textContent = `By ${post.author || 'Rouse SciOly'}`;
+
+    const description = document.getElementById('blog-modal-description');
+    clearElement(description);
+    description.appendChild(parseMarkdown(post.content));
+
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeBlogModal() {
+    const overlay = document.getElementById('blog-modal-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function createBlogCard(post) {
+    const dateLabel = formatShortDate(post.datetime);
+    const card = document.createElement('div');
+    card.className = 'event-card';
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+
+    const image = document.createElement('div');
+    image.className = 'event-card-image';
+    image.style.backgroundImage = "url('/assets/headers/blog.png')";
+
+    const date = document.createElement('div');
+    date.className = 'event-card-date';
+    const month = document.createElement('span');
+    month.className = 'event-card-month';
+    month.textContent = dateLabel.month;
+    const day = document.createElement('span');
+    day.className = 'event-card-day';
+    day.textContent = dateLabel.day;
+    date.append(month, day);
+    image.appendChild(date);
+
+    const content = document.createElement('div');
+    content.className = 'event-card-content';
+    const title = document.createElement('h3');
+    title.className = 'event-card-title';
+    title.textContent = post.title || 'Untitled post';
+    const author = document.createElement('p');
+    author.className = 'blog-card-author';
+    author.textContent = `By ${post.author || 'Rouse SciOly'}`;
+    content.append(title, author);
+
+    card.append(image, content);
+    card.addEventListener('click', () => openBlogModal(post));
+    card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openBlogModal(post);
+        }
+    });
+    return card;
+}
+
+async function loadBlogPosts() {
+    const grid = document.getElementById('events-grid');
+    if (!grid || !document.getElementById('blog-modal-overlay')) return;
+
+    const loadToken = ++blogLoadToken;
+
+    try {
+        const response = await fetch(SCIOLY_API_URL, {cache: 'no-store'});
+        const data = await response.json();
+        const now = Date.now();
+        const posts = (data.blog || []).filter(post => {
+            const timestamp = Number(post.datetime);
+            return !Number.isFinite(timestamp) || timestamp * 1000 <= now;
+        });
+
+        if (loadToken !== blogLoadToken || !document.body.contains(grid)) return;
+
+        if (posts.length > 0) {
+            clearElement(grid);
+            posts.forEach(post => grid.appendChild(createBlogCard(post)));
+        } else {
+            setStatusMessage(grid, 'events-empty', 'No blog posts at the moment.');
+        }
+    } catch (error) {
+        console.error('Failed to load blog posts:', error);
+        if (loadToken !== blogLoadToken || !document.body.contains(grid)) return;
+        setStatusMessage(grid, 'events-error', 'Failed to load blog posts. Please try again later. Note: sandeepshenoy.dev must be unblocked to view items.');
+    }
+}
+
+function initBlogPage() {
+    const overlay = document.getElementById('blog-modal-overlay');
+    const closeButton = document.getElementById('blog-modal-close');
+    if (!overlay || !closeButton) return;
+
+    if (!overlay.dataset.blogBound) {
+        closeButton.addEventListener('click', closeBlogModal);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeBlogModal();
+        });
+        overlay.dataset.blogBound = 'true';
+    }
+
+    loadBlogPosts();
+}
+
+function openResourceModal(resource) {
+    const overlay = document.getElementById('resource-modal-overlay');
+    if (!overlay) return;
+
+    document.getElementById('resource-modal-header').style.backgroundImage = `url('${getHeaderImageUrl(resource.header)}')`;
+
+    const icon = document.getElementById('resource-modal-icon');
+    icon.src = getIconUrl(resource.icon);
+    icon.alt = '';
+
+    document.getElementById('resource-modal-title').textContent = resource.title || 'Untitled resource';
+    document.getElementById('resource-modal-description').textContent = resource.description || '';
+    document.getElementById('resource-modal-link').href = resource.link || '#';
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeResourceModal() {
+    const overlay = document.getElementById('resource-modal-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function createResourceCard(resource) {
+    const card = document.createElement('div');
+    card.className = 'event-card';
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+
+    const image = document.createElement('div');
+    image.className = 'event-card-image';
+    image.style.backgroundImage = `url('${getHeaderImageUrl(resource.header)}')`;
+
+    const content = document.createElement('div');
+    content.className = 'event-card-content';
+    const row = document.createElement('div');
+    row.className = 'resource-card-title-row';
+
+    const icon = document.createElement('img');
+    icon.className = 'resource-card-icon';
+    icon.src = getIconUrl(resource.icon);
+    icon.alt = '';
+
+    const title = document.createElement('h3');
+    title.className = 'event-card-title';
+    title.textContent = resource.title || 'Untitled resource';
+
+    row.append(icon, title);
+    content.appendChild(row);
+    card.append(image, content);
+    card.addEventListener('click', () => openResourceModal(resource));
+    card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openResourceModal(resource);
+        }
+    });
+    return card;
+}
+
+async function loadResources() {
+    const grid = document.getElementById('resources-grid');
+    if (!grid || !document.getElementById('resource-modal-overlay')) return;
+
+    const loadToken = ++resourcesLoadToken;
+
+    try {
+        const response = await fetch(SCIOLY_API_URL, {cache: 'no-store'});
+        const data = await response.json();
+        const resources = data.resources || [];
+
+        if (loadToken !== resourcesLoadToken || !document.body.contains(grid)) return;
+
+        if (resources.length > 0) {
+            clearElement(grid);
+            resources.forEach(resource => grid.appendChild(createResourceCard(resource)));
+        } else {
+            setStatusMessage(grid, 'events-empty', 'No resources here at the moment.');
+        }
+    } catch (error) {
+        console.error('Failed to load resources:', error);
+        if (loadToken !== resourcesLoadToken || !document.body.contains(grid)) return;
+        setStatusMessage(grid, 'events-error', 'Failed to load resources. Please try again later. Note: sandeepshenoy.dev must be unblocked to view items.');
+    }
+}
+
+function initResourcesPage() {
+    const overlay = document.getElementById('resource-modal-overlay');
+    const closeButton = document.getElementById('resource-modal-close');
+    if (!overlay || !closeButton) return;
+
+    if (!overlay.dataset.resourcesBound) {
+        closeButton.addEventListener('click', closeResourceModal);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeResourceModal();
+        });
+        overlay.dataset.resourcesBound = 'true';
+    }
+
+    loadResources();
+}
+
+function parseResults(text) {
+    const lines = text.split('\n');
+    const tournaments = [];
+    let currentTournament = null;
+    let currentTeam = null;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        if (lines[i + 1] && lines[i + 1].trim().match(/^=+$/)) {
+            if (currentTournament) {
+                if (currentTeam) currentTournament.teams.push(currentTeam);
+                tournaments.push(currentTournament);
+            }
+            currentTournament = { name: line, teams: [] };
+            currentTeam = null;
+            i++;
+            continue;
+        }
+
+        if (line.startsWith('Rouse High School')) {
+            if (currentTeam && currentTournament) currentTournament.teams.push(currentTeam);
+            currentTeam = { name: line, events: [] };
+            continue;
+        }
+
+        const eventMatch = line.match(/^(.+?)\s*-\s*(\d+)$/);
+        if (eventMatch && currentTeam) {
+            currentTeam.events.push({
+                name: eventMatch[1].trim(),
+                rank: parseInt(eventMatch[2], 10)
+            });
+        }
+    }
+
+    if (currentTournament) {
+        if (currentTeam) currentTournament.teams.push(currentTeam);
+        tournaments.push(currentTournament);
+    }
+
+    return tournaments.reverse();
+}
+
+function countMedals(events) {
+    return events.reduce((counts, event) => {
+        if (event.rank === 1) counts.gold++;
+        else if (event.rank === 2) counts.silver++;
+        else if (event.rank === 3) counts.bronze++;
+        return counts;
+    }, { gold: 0, silver: 0, bronze: 0 });
+}
+
+function createMedalCount(className, rank, count, label) {
+    const medal = document.createElement('div');
+    medal.className = 'medal-count';
+    const icon = document.createElement('span');
+    icon.className = `medal-icon ${className}`;
+    icon.textContent = rank;
+    medal.append(icon, ` ${count} ${label}`);
+    return medal;
+}
+
+function createResultsTable(team) {
+    const section = document.createElement('div');
+    section.className = 'team-section';
+
+    const teamName = document.createElement('div');
+    teamName.className = 'team-name';
+    teamName.textContent = team.name;
+
+    const medals = countMedals(team.events);
+    const summary = document.createElement('div');
+    summary.className = 'medals-summary';
+    summary.append(
+        createMedalCount('medal-gold', '1', medals.gold, 'Gold'),
+        createMedalCount('medal-silver', '2', medals.silver, 'Silver'),
+        createMedalCount('medal-bronze', '3', medals.bronze, 'Bronze')
+    );
+
+    const table = document.createElement('table');
+    table.className = 'results-table';
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    ['Rank', 'Event'].forEach(label => {
+        const th = document.createElement('th');
+        th.textContent = label;
+        headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+
+    const tbody = document.createElement('tbody');
+    [...team.events].sort((a, b) => {
+        if (a.rank !== b.rank) return a.rank - b.rank;
+        return a.name.localeCompare(b.name);
+    }).forEach(event => {
+        const row = document.createElement('tr');
+        const rank = document.createElement('td');
+        rank.className = 'rank-cell';
+        if (event.rank >= 1 && event.rank <= 3) rank.classList.add(`rank-${event.rank}`);
+        rank.textContent = event.rank;
+
+        const eventName = document.createElement('td');
+        eventName.className = 'event-cell';
+        eventName.textContent = event.name;
+        row.append(rank, eventName);
+        tbody.appendChild(row);
+    });
+    table.append(thead, tbody);
+    section.append(teamName, summary, table);
+    return section;
+}
+
+function renderResults(tournaments) {
+    const container = document.getElementById('results-container');
+    if (!container) return;
+    clearElement(container);
+
+    tournaments.forEach(tournament => {
+        const tournamentEl = document.createElement('div');
+        tournamentEl.className = 'tournament';
+        const title = document.createElement('div');
+        title.className = 'tournament-title';
+        title.textContent = tournament.name;
+        tournamentEl.appendChild(title);
+        tournament.teams.forEach(team => tournamentEl.appendChild(createResultsTable(team)));
+        container.appendChild(tournamentEl);
+    });
+}
+
+async function initResultsPage() {
+    const container = document.getElementById('results-container');
+    if (!container) return;
+
+    try {
+        const response = await fetch('/results/results.txt', {cache: 'no-store'});
+        if (!response.ok) throw new Error('Failed to load results');
+        const tournaments = parseResults(await response.text());
+        renderResults(tournaments);
+    } catch (error) {
+        console.error('Failed to load results:', error);
+        clearElement(container);
+        const message = document.createElement('p');
+        message.textContent = 'Error loading results.';
+        container.appendChild(message);
+    }
+}
+
+function closeActiveModal() {
+    closeEventModal();
+    closeBlogModal();
+    closeResourceModal();
+}
+
+let modalEscapeListenerBound = false;
+
+function bindGlobalModalEscape() {
+    if (modalEscapeListenerBound) return;
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeActiveModal();
+    });
+    modalEscapeListenerBound = true;
+}
+
 function initPageScripts(path = window.location.pathname) {
-    const pathname = getPathname(path);
-    if (pathname === '/upcoming-events' || pathname === '/upcoming-events/' || pathname === '/upcoming-events/index.html') {
+    bindGlobalModalEscape();
+
+    if (isPath(path, ['home'])) {
+        initHomePage();
+    } else if (isPath(path, ['upcomingEvents'])) {
         initUpcomingEventsPage();
+    } else if (isPath(path, ['blog'])) {
+        initBlogPage();
+    } else if (isPath(path, ['resources'])) {
+        initResourcesPage();
+    } else if (isPath(path, ['results'])) {
+        initResultsPage();
     }
 }
 
@@ -710,7 +1241,7 @@ function initCustomScrollbar() {
                         }
                     }
                 } catch (e) {
-                    // ntutil fatty moment
+                    // Canvas pixel reads can fail for cross-origin images or browser security rules.
                 }
             }
             

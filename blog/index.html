@@ -8,7 +8,7 @@
 <body>
     <div class="card">
         <div class="content">
-            <h1>Blog <img class="tab-icon" src="../assets/blog.svg"></h1>
+            <h1>Blog <img class="tab-icon" src="../assets/blog.svg" alt=""></h1>
             <p>Insights from the RSO Team.</p>
         </div>
         <canvas id="waveCanvas"></canvas>
@@ -43,115 +43,5 @@
     </div>
 
 <script src="../script.js"></script>
-<script>
-(function() {
-    const API_URL = 'https://sandeepshenoy.dev/rso/scioly.json';
-    
-    function formatDate(timestamp) {
-        const date = new Date(timestamp * 1000);
-        return date.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
-    
-    function formatShortDate(timestamp) {
-        const date = new Date(timestamp * 1000);
-        const month = date.toLocaleDateString('en-US', { month: 'short' });
-        const day = date.getDate();
-        return { month, day };
-    }
-    
-    function parseMarkdown(text) {
-        return text
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.+?)\*/g, '<em>$1</em>')
-            .replace(/\\!/g, '!')
-            .replace(/\n/g, '<br>');
-    }
-    
-    function createBlogCard(post) {
-        const { month, day } = formatShortDate(post.datetime);
-        const card = document.createElement('div');
-        card.className = 'event-card';
-        card.innerHTML = `
-            <div class="event-card-image" style="background-image: url('../assets/headers/blog.png')">
-                <div class="event-card-date">
-                    <span class="event-card-month">${month}</span>
-                    <span class="event-card-day">${day}</span>
-                </div>
-            </div>
-            <div class="event-card-content">
-                <h3 class="event-card-title">${post.title}</h3>
-                <p class="blog-card-author">By ${post.author}</p>
-            </div>
-        `;
-        card.addEventListener('click', () => openModal(post));
-        return card;
-    }
-    
-    function openModal(post) {
-        const overlay = document.getElementById('blog-modal-overlay');
-        document.getElementById('blog-modal-header').style.backgroundImage = `url('../assets/headers/blog.png')`;
-        document.getElementById('blog-modal-title').textContent = post.title;
-        document.getElementById('blog-modal-date').textContent = formatDate(post.datetime);
-        document.getElementById('blog-modal-author').textContent = 'By ' + post.author;
-        document.getElementById('blog-modal-description').innerHTML = parseMarkdown(post.content);
-        overlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-    
-    function closeModal() {
-        const overlay = document.getElementById('blog-modal-overlay');
-        overlay.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-    
-    async function loadBlogPosts() {
-        const grid = document.getElementById('events-grid');
-        if (!grid) return;
-        
-        const loadId = Date.now().toString();
-        grid.dataset.blogLoadId = loadId;
-        
-        try {
-            const response = await fetch(API_URL, { cache: 'no-store' });
-            const data = await response.json();
-            const now = Date.now();
-            const posts = (data.blog || []).filter(post => {
-                const timestamp = Number(post.datetime);
-                return !Number.isFinite(timestamp) || timestamp * 1000 <= now;
-            });
-            
-            if (!document.body.contains(grid) || grid.dataset.blogLoadId !== loadId) return;
-            
-            if (posts.length > 0) {
-                grid.innerHTML = '';
-                posts.forEach(post => {
-                    grid.appendChild(createBlogCard(post));
-                });
-            } else {
-                grid.innerHTML = '<div class="events-empty">No blog posts at the moment.</div>';
-            }
-        } catch (error) {
-            console.error('Failed to load blog posts:', error);
-            if (!document.body.contains(grid) || grid.dataset.blogLoadId !== loadId) return;
-            grid.innerHTML = '<div class="events-error">Failed to load blog posts. Please try again later. Note: sandeepshenoy.dev must be unblocked to view items.</div>';
-        }
-    }
-    
-    document.getElementById('blog-modal-close').addEventListener('click', closeModal);
-    document.getElementById('blog-modal-overlay').addEventListener('click', (e) => {
-        if (e.target === e.currentTarget) closeModal();
-    });
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeModal();
-    });
-    
-    loadBlogPosts();
-})();
-</script>
 </body>
 </html>

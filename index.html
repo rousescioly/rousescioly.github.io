@@ -121,10 +121,10 @@
                 </div>
             </div>
 
-            <div class="join-section" id="interest-form">
+            <div class="join-section" id="scioly-info">
                 <h2>What is SciOly?</h2>
                 <p>
-                    Science Olympiad programs involves participating in academic competitions, consisting of a series of 23 team events in the high school division (Division C). Each year, a portion of the events are rotated to reflect the ever-changing nature of genetics, earth science, chemistry, anatomy, physics, geology, mechanical engineering and technology.</p>
+                    Science Olympiad programs involve participating in academic competitions, consisting of a series of 23 team events in the high school division (Division C). Each year, a portion of the events are rotated to reflect the ever-changing nature of genetics, earth science, chemistry, anatomy, physics, geology, mechanical engineering and technology.</p>
                     <p> By combining events from all disciplines, Science Olympiad encourages a wide cross-section of students to get involved. Emphasis is placed on active, hands-on group participation. Through Science Olympiad, students, teachers, parents, principals and business leaders bond together and work toward a shared goal.
                 </p>
             </div>
@@ -148,70 +148,5 @@
     </div>
 
     <script src="../script.js"></script>
-
-    <script>
-        const words = [
-            "Create.",
-            "Design.",
-            "Compete.",
-            "Win.",
-            "Est. 2022"
-        ];
-
-        const typingText = document.getElementById("typing-text");
-
-        let wordIndex = 0;
-        let charIndex = 0;
-        let deleting = false;
-
-        const typeSpeed = 50;
-        const deleteSpeed = 25;
-        const pauseTime = 600;
-
-        if (typingText.dataset.typingInit === "1") {
-
-        } else {
-            typingText.dataset.typingInit = "1";
-
-            function animateText() {
-                const current = words[wordIndex];
-
-                if (!deleting) {
-                    typingText.textContent = current.substring(0, charIndex + 1);
-                    charIndex++;
-
-                    if (charIndex === current.length) {
-                        if (wordIndex === words.length - 1) {
-                            typingText.textContent = "Est. 2022";
-                            typingText.classList.add("finished");
-
-                            typingText.setAttribute("data-restored", "true");
-
-                            sessionStorage.setItem("homeTyped", "1");
-                            return;
-                        }
-
-                        deleting = true;
-                        setTimeout(animateText, pauseTime);
-                        return;
-                    }
-
-                    setTimeout(animateText, typeSpeed);
-                } else {
-                    typingText.textContent = current.substring(0, charIndex - 1);
-                    charIndex--;
-
-                    if (charIndex === 0) {
-                        deleting = false;
-                        wordIndex++;
-                    }
-
-                    setTimeout(animateText, deleteSpeed);
-                }
-            }
-
-            animateText();
-        }
-    </script>
 </body>
 </html>
