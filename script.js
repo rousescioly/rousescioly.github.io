@@ -1,3 +1,5 @@
+// note for future self PLEASE SEPARATE THIS INTO MULTIPLE FILES, THIS IS GETTING OUT OF HAND LMAO
+
 (function() {
     const link = document.createElement('link');
     link.rel = 'icon';
