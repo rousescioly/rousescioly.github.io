@@ -428,7 +428,11 @@ function createFooter(path = window.location.pathname) {
 }
 
 let upcomingEventsLoadToken = 0;
+let upcomingEventsCountdownTimer = null;
+
 function getEventDate(timestamp) {
+    if (typeof timestamp !== 'number' && typeof timestamp !== 'string') return null;
+    if (typeof timestamp === 'string' && !timestamp.trim()) return null;
     const value = Number(timestamp);
     if (!Number.isFinite(value)) return null;
     
@@ -470,6 +474,80 @@ function formatEventCardDate(timestamp) {
 
 function getEventImageUrl(img) {
     return getHeaderImageUrl(img);
+}
+
+function stopEventCountdown() {
+    clearInterval(upcomingEventsCountdownTimer);
+    upcomingEventsCountdownTimer = null;
+}
+
+function startEventCountdown(events) {
+    stopEventCountdown();
+    const countdown = document.getElementById('event-countdown');
+    if (!countdown) return;
+
+    const scheduledEvents = events
+        .map(event => ({ event, date: getEventDate(event.datetime) }))
+        .filter(({ date }) => date !== null)
+        .sort((a, b) => a.date - b.date);
+    const status = document.getElementById('countdown-status');
+    const title = document.getElementById('countdown-title');
+    const date = document.getElementById('countdown-date');
+    const clock = document.getElementById('countdown-clock');
+    const liveMessage = document.getElementById('countdown-live-message');
+    const values = ['days', 'hours', 'minutes', 'seconds'].map(unit => document.getElementById(`countdown-${unit}`));
+    const eventDuration = 24 * 60 * 60 * 1000;
+    let displayedEvent = null;
+    let displayedLiveState = null;
+
+    function updateCountdown() {
+        if (!countdown.isConnected) {
+            stopEventCountdown();
+            return false;
+        }
+
+        const now = Date.now();
+        const next = scheduledEvents.find(({ date }) => now < date.getTime() + eventDuration);
+        if (!next) {
+            countdown.hidden = true;
+            stopEventCountdown();
+            return false;
+        }
+
+        const startsAt = next.date.getTime();
+        const isLive = now >= startsAt;
+        if (displayedEvent !== next.event || displayedLiveState !== isLive) {
+            const eventTitle = next.event.title || 'The next competition';
+            countdown.hidden = false;
+            countdown.classList.toggle('is-live', isLive);
+            status.textContent = isLive ? 'Competition day' : 'Next competition';
+            title.textContent = isLive ? `${eventTitle} is happening now!` : eventTitle;
+            date.textContent = formatEventDate(next.event.datetime);
+            clock.hidden = isLive;
+            liveMessage.hidden = !isLive;
+            displayedEvent = next.event;
+            displayedLiveState = isLive;
+        }
+
+        if (!isLive) {
+            const remaining = Math.ceil((startsAt - now) / 1000);
+            const units = [
+                Math.floor(remaining / 86400),
+                Math.floor(remaining / 3600) % 24,
+                Math.floor(remaining / 60) % 60,
+                remaining % 60
+            ];
+            values.forEach((element, index) => {
+                const value = String(units[index]).padStart(2, '0');
+                if (element.textContent !== value) element.textContent = value;
+            });
+        }
+        return true;
+    }
+
+    if (updateCountdown()) {
+        upcomingEventsCountdownTimer = setInterval(updateCountdown, 1000);
+    }
 }
 
 function openEventModal(event) {
@@ -555,13 +633,18 @@ async function loadUpcomingEvents() {
     if (!grid || !document.getElementById('event-modal-overlay')) return;
     
     const loadToken = ++upcomingEventsLoadToken;
+    stopEventCountdown();
+    const countdown = document.getElementById('event-countdown');
+    if (countdown) countdown.hidden = true;
     
     try {
         const response = await fetch(SCIOLY_API_URL, {cache: 'no-store'});
+        if (!response.ok) throw new Error('Failed to load events');
         const data = await response.json();
         const events = data.events || [];
         
         if (loadToken !== upcomingEventsLoadToken || !document.body.contains(grid)) return;
+        startEventCountdown(events);
         
         if (events.length > 0) {
             clearElement(grid);
@@ -1077,6 +1160,7 @@ function bindGlobalModalEscape() {
 
 function initPageScripts(path = window.location.pathname) {
     bindGlobalModalEscape();
+    stopEventCountdown();
 
     if (isPath(path, ['home'])) {
         initHomePage();

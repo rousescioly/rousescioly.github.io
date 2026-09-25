@@ -13,6 +13,20 @@
         </div>
         <canvas id="waveCanvas"></canvas>
         <div class="about-section" id="about-section">
+            <section class="event-countdown" id="event-countdown" aria-labelledby="countdown-title" hidden>
+                <div class="countdown-info">
+                    <span class="countdown-status" id="countdown-status">Next competition</span>
+                    <h2 id="countdown-title" aria-live="polite" aria-atomic="true"></h2>
+                    <p class="countdown-date" id="countdown-date"></p>
+                </div>
+                <div class="countdown-clock" id="countdown-clock" role="timer" aria-label="Time until the next competition" aria-live="off">
+                    <div class="countdown-unit"><span class="countdown-value" id="countdown-days">00</span><span class="countdown-label">Days</span></div>
+                    <div class="countdown-unit"><span class="countdown-value" id="countdown-hours">00</span><span class="countdown-label">Hours</span></div>
+                    <div class="countdown-unit"><span class="countdown-value" id="countdown-minutes">00</span><span class="countdown-label">Minutes</span></div>
+                    <div class="countdown-unit"><span class="countdown-value" id="countdown-seconds">00</span><span class="countdown-label">Seconds</span></div>
+                </div>
+                <p class="countdown-live-message" id="countdown-live-message" hidden>Good luck, Raiders!</p>
+            </section>
             <div class="events-container">
                 <div class="events-grid" id="events-grid">
                     <div class="events-loading">Loading events...</div>
